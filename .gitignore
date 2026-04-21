@@ -1,0 +1,61 @@
+# -----------------------------
+# Node / Next.js
+# -----------------------------
+node_modules/
+.next/
+out/
+dist/
+build/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# -----------------------------
+# Environment variables (CRITICAL)
+# -----------------------------
+.env
+.env.*
+!.env.example
+
+# -----------------------------
+# OS / editor noise
+# -----------------------------
+.DS_Store
+Thumbs.db
+
+# VS Code (optional: keep or remove depending on preference)
+.vscode/
+
+# -----------------------------
+# TypeScript
+# -----------------------------
+*.tsbuildinfo
+
+# -----------------------------
+# Testing / coverage
+# -----------------------------
+coverage/
+
+# -----------------------------
+# Optional: Python / data workflow (if you add later)
+# -----------------------------
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# -----------------------------
+# Optional: large data files
+# -----------------------------
+data/
+*.csv
+*.parquet
+*.h5
+
+# -----------------------------
+# Supabase local (if you use CLI later)
+# -----------------------------
+.supabase/
