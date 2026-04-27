@@ -1,14 +1,14 @@
 # NFC Dash — TODO
 
 ## Phase 1: Foundation *(do first)*
-- [ ] Install `maplibre-gl` package
+- [x] Install `maplibre-gl` package
 - [ ] Run SQL migrations in Supabase (4 tables: `facilities`, `documents`, `demographics`, `production_data`)
 - [ ] Create Supabase Storage bucket `documents` with public-read RLS
 - [ ] Add `NEXT_PUBLIC_MAPTILER_KEY` to `.env.local`
-- [ ] Create `src/lib/types.ts` — shared TS types (`Facility`, `Document`, `Demographics`, `ProductionData`)
-- [ ] Update `src/lib/supabase.ts` — typed client
-- [ ] Update `src/app/layout.tsx` — fix metadata, add `<Navbar />`
-- [ ] Create `src/components/nav/Navbar.tsx` — links: Home · Map · Facilities · Stats
+- [x] Create `src/lib/types.ts` — shared TS types (`Facility`, `Document`, `Demographics`, `ProductionData`)
+- [x] Update `src/lib/supabase.ts` — typed client
+- [x] Update `src/app/layout.tsx` — fix metadata, add `<Navbar />`
+- [x] Create `src/components/nav/Navbar.tsx` — links: Home · Map · Facilities · Stats
 
 ## Phase 2: Facilities *(parallel with Phase 3)*
 - [ ] Rewrite `src/app/page.tsx` — dashboard summary cards (count by category, active vs. decommissioned)
@@ -16,11 +16,13 @@
 - [ ] Create `src/components/facilities/FacilityTable.tsx` — sortable table rows
 - [ ] Create `src/components/facilities/CategoryBadge.tsx` — color-coded category pill
 - [ ] Create `src/app/facilities/[slug]/page.tsx` — detail: full fields + document list + mini map
+- [x] Temporary route placeholder added for `src/app/facilities/page.tsx` to prevent 404
 
 ## Phase 3: Map *(parallel with Phase 2)*
 - [ ] Create `src/components/map/FacilityMap.tsx` — `'use client'`, MapLibre GL JS, markers colored by category, click → popup with name/category/link to detail
 - [ ] Create `src/app/map/page.tsx` — full-screen map via `dynamic(() => ..., { ssr: false })`
 - [ ] Add MapLibre CSS import to `src/app/globals.css`
+- [x] Temporary route placeholder added for `src/app/map/page.tsx` to prevent 404
 
 ## Phase 4: Documents *(depends on Phase 2)*
 - [ ] Create `src/components/docs/DocumentList.tsx` — list docs, Supabase Storage signed URL downloads

@@ -1,0 +1,11 @@
+{
+  "name": "nfc-site-workspace",
+  "private": true,
+  "scripts": {
+    "install:app": "cd nfc_dash && npm install",
+    "dev": "cd nfc_dash && npm run dev",
+    "build": "cd nfc_dash && npm run build",
+    "start": "cd nfc_dash && npm run start",
+    "lint": "cd nfc_dash && npm run lint"
+  }
+}
