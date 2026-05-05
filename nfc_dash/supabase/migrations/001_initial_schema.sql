@@ -42,8 +42,6 @@ create table facilities (
   capacity numeric,
   capacity_unit text,
 
-  parent_facility_id uuid references facilities(id),
-
   source text,
   notes text,
   created_at timestamptz default now()

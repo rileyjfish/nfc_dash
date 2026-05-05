@@ -7,5 +7,8 @@
     "build": "cd nfc_dash && npm run build",
     "start": "cd nfc_dash && npm run start",
     "lint": "cd nfc_dash && npm run lint"
+  },
+  "devDependencies": {
+    "supabase": "^2.98.1"
   }
 }
