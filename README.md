@@ -26,14 +26,14 @@ npm install
 ### 3. Install app dependencies
 
 ```bash
-cd nfc_dash
+cd dash
 npm install
 cd ..
 ```
 
 ### 4. Configure environment variables
 
-Create `nfc_dash/.env.local` with the following:
+Create `dash/.env.local` with the following:
 
 ```env
 # Required — Supabase connection
@@ -64,7 +64,7 @@ Open [http://localhost:3000](http://localhost:3000).
 NFC Site/
 ├── package.json          # Workspace root scripts (run npm run dev from here)
 ├── supabase/             # Supabase project config and migrations (root-level)
-└── nfc_dash/             # Next.js app
+└── dash/             # Next.js app
     ├── src/
     │   ├── app/          # Next.js App Router pages
     │   ├── components/   # UI components
@@ -79,7 +79,7 @@ NFC Site/
 The app uses Supabase (Postgres). To apply migrations and seed data to a duplicate project (do not run in native project):
 
 ```bash
-# From nfc_dash/
+# From dash/
 npx supabase login
 npx supabase link --project-ref <project-ref>
 npx supabase db push --include-seed

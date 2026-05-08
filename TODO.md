@@ -45,6 +45,7 @@
 - [ ] Mill sites and units; all the units are individual sites but many are part of larger operating sites (wheel+spoke operations for example).
 - [ ] Site boundary shapefiles: convert per-site shapefiles to GeoJSON (via `ogr2ogr` or QGIS), upload to Supabase Storage under a `site-boundaries` bucket, add `boundary_path` text column to `sites` table referencing storage path, fetch lazily on marker click in `SiteMap.tsx`
 - [ ] Operator classification: identify private industry vs. government (national labs, defense/testing) operation per facility/site. No systematic approach yet — flag as schema + data quality work when methodology is established
+- [ ] Consider rewiring reactor data entirely. There are better + higher fidelity databases than what I have currently. Maybe tap into the TAMU nuclear power plant dashboard 
 
 ## Schema TODO
 - [ ] Add `boundary_path text` column to `sites` table (references Supabase Storage path for GeoJSON site boundary)

@@ -41,7 +41,7 @@ coverage/
 # -----------------------------
 # Supabase CLI local state
 # -----------------------------
-nfc_dash/supabase/.temp/
+dash/supabase/.temp/
 
 # -----------------------------
 # Facility import folders
