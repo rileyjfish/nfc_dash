@@ -572,6 +572,17 @@ on conflict (id) do update
       ('72519134-d3d9-58ea-900c-487fd1e264f5', 'a76ea5d6-058c-523c-885e-c67bfd6c8031', 'New Wales Plant', 'mill', 'stand by', '1970-01-01', '1970-01-01', 425.0, 't U/year'),
       ('65796eb4-1f9d-59f2-afda-2b0f6190998f', 'a76ea5d6-058c-523c-885e-c67bfd6c8031', 'Plant City Module', 'mill', 'stand by', '1970-01-01', '1970-01-01', 270.0, 't U/year'),
       ('4d075f45-3339-532e-a9b6-9bf5493fe29f', 'fe024d58-2d6d-59bb-a08a-c0272654ab63', 'Uncle Sam', 'mill', 'stand by', '1970-01-01', '1970-01-01', 350.0, 't U/year')
-    on conflict (id) do nothing;
+    on conflict (id) do update set
+      facility_status = excluded.facility_status;
+
+    -- Fix reactor statuses: any reactor whose license end date is after 2026 is operating.
+    -- All others remain shutdown per the seeded values above.
+    update facilities
+    set facility_status = 'active'
+    where facility_type = 'reactor'
+      and (
+        end_operation is null
+        or end_operation > '2026-01-01'
+      );
 
     commit;
