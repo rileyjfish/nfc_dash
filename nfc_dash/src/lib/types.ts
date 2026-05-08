@@ -1,5 +1,7 @@
 export type FacilityTypeCategory = 'frontend' | 'fuel_processing' | 'reactor' | 'backend'
 
+export type StatusGroup = 'operating' | 'shutdown' | 'planned' | 'cancelled'
+
 export interface FacilityType {
   id: string
   label: string
@@ -125,6 +127,23 @@ export interface FacilityOwnershipListItem {
 export interface FacilityDocumentListItem {
   document_id: string
   document: DocumentFile | null
+}
+
+export interface SiteUnit {
+  id: string
+  facility_name: string
+  facility_status: string | null
+  facility_type: string
+  type: { id: string; label: string; category: string } | null
+}
+
+export interface SiteListItem {
+  id: string
+  site_name: string | null
+  latitude: number
+  longitude: number
+  notes: string | null
+  units: SiteUnit[]
 }
 
 export type Database = {

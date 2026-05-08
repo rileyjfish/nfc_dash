@@ -1,13 +1,13 @@
-import type { FacilityListItem } from '@/lib/types'
-import FacilityMapClient from '@/components/map/FacilityMapClient'
-import { getFacilitiesList } from '@/lib/queries/facilities'
+import type { SiteListItem } from '@/lib/types'
+import SiteMapClient from '@/components/map/SiteMapClient'
+import { getSitesList } from '@/lib/queries/facilities'
 
 export default async function MapPage() {
   let loadError: string | null = null
-  let facilities: FacilityListItem[] = []
+  let sites: SiteListItem[] = []
 
   try {
-    facilities = await getFacilitiesList()
+    sites = await getSitesList()
   } catch (error) {
     loadError = error instanceof Error ? error.message : 'Unknown error'
   }
@@ -24,14 +24,14 @@ export default async function MapPage() {
   return (
     <main className="p-8">
       <header className="mb-5">
-        <h1 className="text-3xl font-semibold">Facility Map</h1>
+        <h1 className="text-3xl font-semibold">Site Map</h1>
         <p className="text-gray-600 mt-2">
-          Marker colors follow facility category. Data source is facilities joined to site coordinates.
+          One marker per site. Click a marker to see all units at that site.
         </p>
       </header>
 
-      <FacilityMapClient
-        facilities={facilities}
+      <SiteMapClient
+        sites={sites}
         maptilerKey={process.env.NEXT_PUBLIC_MAPTILER_KEY}
       />
     </main>

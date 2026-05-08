@@ -4,6 +4,8 @@ import type {
   FacilityDocumentListItem,
   FacilityListItem,
   FacilityOwnershipListItem,
+  SiteListItem,
+  StatusGroup,
 } from '@/lib/types'
 
 export async function getFacilitiesList(): Promise<FacilityListItem[]> {
@@ -40,22 +42,38 @@ export async function getFacilitiesList(): Promise<FacilityListItem[]> {
   return (data ?? []) as FacilityListItem[]
 }
 
+const STATUS_MAP: Record<StatusGroup, string[]> = {
+  operating: ['active'],
+  shutdown: ['shutdown', 'decommissioned', 'decommissioning'],
+  planned: ['under_construction', 'licensing'],
+  cancelled: ['cancelled', 'terminated'],
+}
+
+export function resolveStatusGroup(status: string | null): StatusGroup | null {
+  const s = status?.toLowerCase() ?? ''
+  for (const [group, values] of Object.entries(STATUS_MAP) as [StatusGroup, string[]][]) {
+    if (values.includes(s)) return group
+  }
+  return null
+}
+
 export function summarizeFacilities(facilities: FacilityListItem[]) {
-  const byCategory: Record<string, number> = {}
+  const byCategory: Record<string, Record<StatusGroup, number>> = {}
   let active = 0
   let planned = 0
 
   for (const facility of facilities) {
-    const status = facility.facility_status?.toLowerCase()
-    if (status === 'active') {
-      active += 1
-    }
-    if (status === 'planned') {
-      planned += 1
-    }
+    const statusGroup = resolveStatusGroup(facility.facility_status)
+    if (statusGroup === 'operating') active += 1
+    if (statusGroup === 'planned') planned += 1
 
     const category = facility.type?.category ?? 'uncategorized'
-    byCategory[category] = (byCategory[category] ?? 0) + 1
+    if (!byCategory[category]) {
+      byCategory[category] = { operating: 0, shutdown: 0, planned: 0, cancelled: 0 }
+    }
+    if (statusGroup) {
+      byCategory[category][statusGroup] += 1
+    }
   }
 
   return {
@@ -64,6 +82,50 @@ export function summarizeFacilities(facilities: FacilityListItem[]) {
     planned,
     byCategory,
   }
+}
+
+export async function getSitesList(): Promise<SiteListItem[]> {
+  const { data, error } = await supabase
+    .from('sites')
+    .select(
+      `
+        id,
+        site_name,
+        latitude,
+        longitude,
+        notes,
+        units:facilities (
+          id,
+          facility_name,
+          facility_status,
+          facility_type,
+          type:facility_types!facilities_facility_type_fkey (
+            id,
+            label,
+            category
+          )
+        )
+      `
+    )
+    .order('site_name', { ascending: true })
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  return (data ?? []) as SiteListItem[]
+}
+
+export async function getSiteCount(): Promise<number> {
+  const { count, error } = await supabase
+    .from('sites')
+    .select('*', { count: 'exact', head: true })
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  return count ?? 0
 }
 
 export async function getFacilityDetailById(id: string): Promise<FacilityDetailItem | null> {

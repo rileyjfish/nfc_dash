@@ -1,112 +1,57 @@
 # NFC Dash — TODO
 
-## Phase 1: Foundation *(do first)*
+## Phase 1: Schema + Seed Baseline
 - [x] Install `maplibre-gl` package
-- [ ] Run SQL migrations in Supabase (4 tables: `facilities`, `documents`, `demographics`, `production_data`)
-- [ ] Create Supabase Storage bucket `documents` with public-read RLS
-- [ ] Add `NEXT_PUBLIC_MAPTILER_KEY` to `.env.local`
-- [x] Create `src/lib/types.ts` — shared TS types (`Facility`, `Document`, `Demographics`, `ProductionData`)
-- [x] Update `src/lib/supabase.ts` — typed client
-- [x] Update `src/app/layout.tsx` — fix metadata, add `<Navbar />`
-- [x] Create `src/components/nav/Navbar.tsx` — links: Home · Map · Facilities · Stats
+- [x] Run Supabase migration for new normalized schema (`facility_types`, `sites`, `facilities`, `owners`, `facility_ownerships`, `document_files`, `document_facilities`, `mine_locations`)
+- [x] Load synthetic seed data into Supabase
+- [X] Enable RLS + public read policies for all read-only app tables
+- [X] Verify row counts after seeding (sanity check for each table)
+- [X] Add `NEXT_PUBLIC_MAPTILER_KEY` to `.env.local`
 
-## Phase 2: Facilities *(parallel with Phase 3)*
-- [ ] Rewrite `src/app/page.tsx` — dashboard summary cards (count by category, active vs. decommissioned)
-- [ ] Create `src/app/facilities/page.tsx` — filterable/searchable server-side list
-- [ ] Create `src/components/facilities/FacilityTable.tsx` — sortable table rows
-- [ ] Create `src/components/facilities/CategoryBadge.tsx` — color-coded category pill
-- [ ] Create `src/app/facilities/[slug]/page.tsx` — detail: full fields + document list + mini map
-- [x] Temporary route placeholder added for `src/app/facilities/page.tsx` to prevent 404
+## Phase 2: App Data Contract (must do before UI work)
+- [x] Replace legacy `src/lib/types.ts` model with schema-aligned types (remove old `documents`, `demographics`, `production_data` contract)
+- [x] Add joined query types for facility cards (facility + site + type)
+- [x] Fix `src/app/page.tsx` query (`locations` table no longer exists)
+- [x] Add a shared data-access layer for joins (e.g., `src/lib/queries/facilities.ts`)
 
-## Phase 3: Map *(parallel with Phase 2)*
-- [ ] Create `src/components/map/FacilityMap.tsx` — `'use client'`, MapLibre GL JS, markers colored by category, click → popup with name/category/link to detail
-- [ ] Create `src/app/map/page.tsx` — full-screen map via `dynamic(() => ..., { ssr: false })`
-- [ ] Add MapLibre CSS import to `src/app/globals.css`
-- [x] Temporary route placeholder added for `src/app/map/page.tsx` to prevent 404
+## Phase 3: Facilities UI
+- [x] Rewrite `src/app/page.tsx` dashboard summary cards (count by `facility_type` / `facility_status`)
+- [x] Build `src/app/facilities/page.tsx` server-side list from joined facility/site/type data
+- [x] Create `src/components/facilities/FacilityTable.tsx` (sortable/filterable)
+- [x] Create `src/components/facilities/TypeBadge.tsx` (color-coded by category)
+- [x] Create `src/app/facilities/[id]/page.tsx` detail page (core fields + ownership history + related documents)
+- [x] Temporary route placeholder exists for `src/app/facilities/page.tsx`
 
-## Phase 4: Documents *(depends on Phase 2)*
-- [ ] Create `src/components/docs/DocumentList.tsx` — list docs, Supabase Storage signed URL downloads
-- [ ] Integrate `DocumentList` into `src/app/facilities/[slug]/page.tsx`
-- [ ] Scaffold `src/app/facilities/[slug]/docs/[docId]/page.tsx` — metadata + download button
+## Phase 4: Map UI
+- [x] Create `src/components/map/FacilityMap.tsx` (`'use client'`, MapLibre GL JS)
+- [x] Use `sites.latitude/longitude` for markers; cluster where appropriate
+- [x] Create `src/app/map/page.tsx` with dynamic import (`ssr: false`)
+- [x] Add MapLibre CSS import in `src/app/globals.css`
+- [x] Temporary route placeholder exists for `src/app/map/page.tsx`
 
-## Phase 5: Stats *(deferred UI)*
-- [ ] Create `src/app/stats/page.tsx` — "Coming soon" placeholder
-- [ ] DB tables `demographics` and `production_data` created in Phase 1 migration — UI to follow later
+## Phase 5: Documents
+- [ ] Create Supabase Storage bucket and RLS policies for document access
+- [ ] Implement `DocumentList` against `document_files` + `document_facilities`
+- [ ] Integrate document list into facility detail page
+- [ ] Add per-document route/page (metadata + download)
 
----
+## Phase 6: Ownership + Mine Data
+- [x] Add ownership timeline/table UI from `facility_ownerships`
+- [ ] Add owner profile pages or drawer view from `owners`
+- [ ] Decide whether `mine_locations` appears as a separate map layer or merged with facilities
 
-## Database Schema (run in Supabase SQL editor)
+## Data Quality
+- [ ] Status audit: many facilities currently labeled `proposed` may actually be `terminated` — needs manual review before real data load. Relevant status groupings: Operating=`active`, Shutdown=`shutdown|decommissioned|decommissioning`, Planned=`under_construction|licensing`, Cancelled=`cancelled|terminated`
+- [ ] Mill sites and units; all the units are individual sites but many are part of larger operating sites (wheel+spoke operations for example).
+- [ ] Site boundary shapefiles: convert per-site shapefiles to GeoJSON (via `ogr2ogr` or QGIS), upload to Supabase Storage under a `site-boundaries` bucket, add `boundary_path` text column to `sites` table referencing storage path, fetch lazily on marker click in `SiteMap.tsx`
+- [ ] Operator classification: identify private industry vs. government (national labs, defense/testing) operation per facility/site. No systematic approach yet — flag as schema + data quality work when methodology is established
 
-### `facilities`
-```sql
-create table facilities (
-  id                  uuid primary key default gen_random_uuid(),
-  name                text not null,
-  slug                text unique not null,
-  category            text not null check (category in (
-                        'mining_milling','conversion','enrichment',
-                        'fuel_fabrication','power_reactor','reprocessing','waste_storage'
-                      )),
-  operator            text,
-  country             text,
-  region              text,
-  latitude            numeric(10,6),
-  longitude           numeric(10,6),
-  status              text default 'active' check (status in (
-                        'active','decommissioned','planned','under_construction'
-                      )),
-  description         text,
-  capacity            text,
-  commissioned_year   int,
-  decommissioned_year int,
-  created_at          timestamptz default now()
-);
-alter table facilities enable row level security;
-create policy "public read" on facilities for select using (true);
-```
+## Schema TODO
+- [ ] Add `boundary_path text` column to `sites` table (references Supabase Storage path for GeoJSON site boundary)
+- [ ] Add operator classification field(s) to `facilities` or `sites` (e.g. `operator_sector` enum: `private`, `government`, `defense`) — hold until data approach is settled
 
-### `documents`
-```sql
-create table documents (
-  id          uuid primary key default gen_random_uuid(),
-  facility_id uuid references facilities(id) on delete cascade,
-  title       text not null,
-  description text,
-  file_path   text not null,
-  file_type   text,
-  file_size   bigint,
-  tags        text[],
-  uploaded_at timestamptz default now()
-);
-alter table documents enable row level security;
-create policy "public read" on documents for select using (true);
-```
 
-### `demographics` *(scaffolded — no UI yet)*
-```sql
-create table demographics (
-  id          uuid primary key default gen_random_uuid(),
-  facility_id uuid references facilities(id) on delete cascade,
-  radius_km   numeric,
-  population  bigint,
-  source      text,
-  year        int
-);
-alter table demographics enable row level security;
-create policy "public read" on demographics for select using (true);
-```
-
-### `production_data` *(scaffolded — no UI yet)*
-```sql
-create table production_data (
-  id          uuid primary key default gen_random_uuid(),
-  facility_id uuid references facilities(id) on delete cascade,
-  year        int,
-  metric_name text,
-  value       numeric,
-  unit        text,
-  source      text
-);
-alter table production_data enable row level security;
-create policy "public read" on production_data for select using (true);
-```
+## Notes
+- Old TODO items for `documents`, `demographics`, and `production_data` were based on an earlier schema and are now superseded.
+- Source of truth for schema: `nfc_dash/supabase/migrations/001_initial_schema.sql`
+- Source of truth for synthetic data: `nfc_dash/supabase/seeds/synthetic_seed.sql`
