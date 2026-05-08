@@ -146,6 +146,36 @@ export interface SiteListItem {
   units: SiteUnit[]
 }
 
+export interface SiteDetailUnit {
+  id: string
+  facility_name: string
+  facility_status: string | null
+  facility_type: string
+  proposal_date: string | null
+  start_operation: string | null
+  end_operation: string | null
+  capacity: number | null
+  capacity_unit: string | null
+  source: string | null
+  notes: string | null
+  type: Pick<FacilityType, 'id' | 'label' | 'category'> | null
+}
+
+export interface SiteDetailItem {
+  id: string
+  site_name: string | null
+  latitude: number
+  longitude: number
+  notes: string | null
+  units: SiteDetailUnit[]
+}
+
+export interface SiteDocumentItem {
+  document_id: string
+  facility_id: string
+  document: DocumentFile | null
+}
+
 export type Database = {
   public: {
     Tables: {

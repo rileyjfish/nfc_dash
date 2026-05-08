@@ -39,6 +39,11 @@ Thumbs.db
 coverage/
 
 # -----------------------------
+# Supabase CLI local state
+# -----------------------------
+nfc_dash/supabase/.temp/
+
+# -----------------------------
 # Facility import folders
 # -----------------------------
 facility_import*/

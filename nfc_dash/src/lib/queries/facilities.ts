@@ -4,6 +4,8 @@ import type {
   FacilityDocumentListItem,
   FacilityListItem,
   FacilityOwnershipListItem,
+  SiteDetailItem,
+  SiteDocumentItem,
   SiteListItem,
   StatusGroup,
 } from '@/lib/types'
@@ -223,4 +225,81 @@ export async function getFacilityDocumentsByFacilityId(
   }
 
   return (data ?? []) as FacilityDocumentListItem[]
+}
+
+export async function getSiteDetailById(id: string): Promise<SiteDetailItem | null> {
+  const { data, error } = await supabase
+    .from('sites')
+    .select(
+      `
+        id,
+        site_name,
+        latitude,
+        longitude,
+        notes,
+        units:facilities (
+          id,
+          facility_name,
+          facility_status,
+          facility_type,
+          proposal_date,
+          start_operation,
+          end_operation,
+          capacity,
+          capacity_unit,
+          source,
+          notes,
+          type:facility_types!facilities_facility_type_fkey (
+            id,
+            label,
+            category
+          )
+        )
+      `
+    )
+    .eq('id', id)
+    .maybeSingle()
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  return (data ?? null) as SiteDetailItem | null
+}
+
+export async function getDocumentsBySiteId(siteId: string): Promise<SiteDocumentItem[]> {
+  const { data: facilityData, error: facilityError } = await supabase
+    .from('facilities')
+    .select('id')
+    .eq('site_id', siteId)
+
+  if (facilityError) {
+    throw new Error(facilityError.message)
+  }
+
+  const facilityIds = (facilityData ?? []).map((f) => f.id)
+  if (facilityIds.length === 0) return []
+
+  const { data, error } = await supabase
+    .from('document_facilities')
+    .select(
+      `
+        document_id,
+        facility_id,
+        document:document_files!document_facilities_document_id_fkey (
+          id,
+          bucket,
+          path,
+          filename,
+          created_at
+        )
+      `
+    )
+    .in('facility_id', facilityIds)
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  return (data ?? []) as SiteDocumentItem[]
 }

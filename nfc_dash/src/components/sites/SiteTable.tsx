@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import React, { useState } from 'react'
 import type { SiteListItem, SiteUnit } from '@/lib/types'
 
@@ -8,16 +9,36 @@ type SortKey = 'name' | 'operating' | 'shutdown' | 'total'
 const OPERATING = new Set(['active'])
 const SHUTDOWN = new Set(['shutdown', 'decommissioned', 'decommissioning'])
 
-const TYPE_COLS: { id: string; abbr: string; title: string }[] = [
-  { id: 'reactor', abbr: 'Rx', title: 'Reactor' },
-  { id: 'isr', abbr: 'ISR', title: 'ISR' },
-  { id: 'mill', abbr: 'Mill', title: 'Conventional Mill' },
-  { id: 'conversion', abbr: 'Conv', title: 'Conversion' },
-  { id: 'enrichment', abbr: 'Enr', title: 'Enrichment' },
-]
+// Total column count: site + types + op + shut + total + expand chevron
+const TOTAL_COLS = 1 + 1 + 3 + 1
 
-// Total column count: site + type cols + op + shut + total + expand chevron
-const TOTAL_COLS = 1 + TYPE_COLS.length + 3 + 1
+const CATEGORY_LABEL: Record<string, string> = {
+  reactor: 'Reactor',
+  fuel_processing: 'Fuel Processing',
+  backend: 'HLW Mgmt',
+  frontend: 'Frontend',
+}
+
+const CATEGORY_STYLE: Record<string, string> = {
+  reactor: 'bg-sky-100 text-sky-800',
+  fuel_processing: 'bg-amber-100 text-amber-800',
+  backend: 'bg-rose-100 text-rose-800',
+  frontend: 'bg-emerald-100 text-emerald-800',
+}
+
+function primaryTypes(units: SiteUnit[]): string[] {
+  const seen = new Set<string>()
+  const order = ['reactor', 'fuel_processing', 'backend', 'frontend']
+  for (const cat of order) {
+    if (units.some((u) => u.type?.category === cat)) seen.add(cat)
+  }
+  // include any unlisted categories too
+  for (const u of units) {
+    const cat = u.type?.category
+    if (cat && !seen.has(cat)) seen.add(cat)
+  }
+  return [...seen]
+}
 
 function statusLabel(status: string | null): string {
   const s = status?.toLowerCase() ?? ''
@@ -88,15 +109,7 @@ export default function SiteTable({ sites }: { sites: SiteListItem[] }) {
             >
               Site{arrow('name')}
             </th>
-            {TYPE_COLS.map((tc) => (
-              <th
-                key={tc.id}
-                className="py-2 pr-3 font-medium text-center"
-                title={tc.title}
-              >
-                {tc.abbr}
-              </th>
-            ))}
+            <th className="py-2 pr-6 font-medium text-left">Types</th>
             <th
               className="py-2 pr-4 font-medium text-right cursor-pointer select-none hover:text-gray-900 whitespace-nowrap"
               onClick={() => handleSort('operating')}
@@ -123,15 +136,7 @@ export default function SiteTable({ sites }: { sites: SiteListItem[] }) {
             const c = counts(site.units)
             const isOpen = expanded.has(site.id)
 
-            // Only show type indicators for operating or shutdown units
-            const activeTypes = new Set(
-              site.units
-                .filter((u) => {
-                  const s = u.facility_status?.toLowerCase() ?? ''
-                  return OPERATING.has(s) || SHUTDOWN.has(s)
-                })
-                .map((u) => u.facility_type)
-            )
+            const types = primaryTypes(site.units)
 
             return (
               <React.Fragment key={site.id}>
@@ -145,16 +150,18 @@ export default function SiteTable({ sites }: { sites: SiteListItem[] }) {
                       {site.latitude.toFixed(4)}, {site.longitude.toFixed(4)}
                     </div>
                   </td>
-                  {TYPE_COLS.map((tc) => (
-                    <td key={tc.id} className="py-3 pr-3 text-center">
-                      {activeTypes.has(tc.id) && (
+                  <td className="py-3 pr-6">
+                    <div className="flex flex-wrap gap-1">
+                      {types.map((cat) => (
                         <span
-                          className="inline-block w-2 h-2 rounded-full bg-blue-500"
-                          title={tc.title}
-                        />
-                      )}
-                    </td>
-                  ))}
+                          key={cat}
+                          className={`inline-block rounded px-1.5 py-0.5 text-xs font-medium ${CATEGORY_STYLE[cat] ?? 'bg-gray-100 text-gray-700'}`}
+                        >
+                          {CATEGORY_LABEL[cat] ?? cat}
+                        </span>
+                      ))}
+                    </div>
+                  </td>
                   <td className="py-3 pr-4 text-right">
                     {c.op > 0 ? (
                       <span className="text-green-700 font-medium">{c.op}</span>
@@ -177,6 +184,16 @@ export default function SiteTable({ sites }: { sites: SiteListItem[] }) {
                 {isOpen && (
                   <tr className="bg-gray-50 border-b">
                     <td colSpan={TOTAL_COLS} className="px-6 py-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-xs text-gray-500">{site.units.length} unit{site.units.length !== 1 ? 's' : ''}</span>
+                        <Link
+                          href={`/sites/${site.id}`}
+                          className="text-xs text-sky-700 underline"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          Details &amp; Documentation →
+                        </Link>
+                      </div>
                       <table className="w-full text-sm">
                         <thead>
                           <tr className="text-xs text-gray-500 uppercase tracking-wide border-b">

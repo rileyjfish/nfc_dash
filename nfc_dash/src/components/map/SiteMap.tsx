@@ -98,6 +98,9 @@ function buildPopupHtml(site: SiteListItem): string {
           ${rowsHtml}
         </tbody>
       </table>
+      <div style="margin-top: 10px; text-align: right;">
+        <a href="/sites/${site.id}" style="font-size: 11px; color: #0284c7; text-decoration: underline;">Details &amp; Documentation →</a>
+      </div>
     </div>`
 }
 
