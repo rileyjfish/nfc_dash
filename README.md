@@ -5,8 +5,9 @@ A Next.js dashboard for tracking nuclear fuel cycle sites, facilities, and docum
 ## Prerequisites
 
 - [Node.js](https://nodejs.org/) v20 or later
-- npm v10 or later
+- npm v10 or later (should be installed with Node.js)
 - Access to the project Supabase instance (URL + anon key)
+- To check whether npm downloaded properly, run npm -v in your terminal. It will return a version number if it is installed properly.
 
 ## Setup
 
@@ -14,7 +15,7 @@ A Next.js dashboard for tracking nuclear fuel cycle sites, facilities, and docum
 
 ```bash
 git clone <repo-url>
-cd "NFC Site"
+cd "nfc_dash"
 ```
 
 ### 2. Install root dependencies
