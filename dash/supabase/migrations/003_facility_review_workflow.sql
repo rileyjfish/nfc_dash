@@ -32,10 +32,16 @@ create index if not exists idx_facility_reviews_reviewer
   on facility_reviews(reviewer);
 
 -- Keep the review table aligned with currently loaded facilities.
-insert into facility_reviews (facility_id, facility_name)
-select f.id, f.facility_name
+insert into facility_reviews (facility_id, facility_name, site_id)
+select f.id, f.facility_name, f.site_id
 from facilities f
 on conflict (facility_id) do nothing;
+
+update facility_reviews fr
+set site_id = f.site_id
+from facilities f
+where fr.facility_id = f.id
+  and fr.site_id is distinct from f.site_id;
 
 -- Keep the stored facility name aligned with the source facility row.
 create or replace function sync_facility_reviews_facility_name()
@@ -52,10 +58,28 @@ begin
 end;
 $$;
 
+create or replace function sync_facility_reviews_site_id()
+returns trigger
+language plpgsql
+as $$
+begin
+  update facility_reviews
+  set site_id = new.site_id
+  where facility_id = new.id;
+
+  return new;
+end;
+$$;
+
 drop trigger if exists trg_sync_facility_reviews_facility_name on facility_reviews;
 create trigger trg_sync_facility_reviews_facility_name
 before insert or update of facility_id on facility_reviews
 for each row execute function sync_facility_reviews_facility_name();
+
+drop trigger if exists trg_sync_facility_reviews_site_id on facilities;
+create trigger trg_sync_facility_reviews_site_id
+after update of site_id on facilities
+for each row execute function sync_facility_reviews_site_id();
 
 -- Update timestamp helper for edits to review records.
 create or replace function touch_facility_reviews_updated_at()
