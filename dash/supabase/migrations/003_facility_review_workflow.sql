@@ -6,8 +6,8 @@ begin;
 create table if not exists facility_reviews (
   facility_id uuid primary key references facilities(id) on delete cascade,
   facility_name text not null,
-  parent_site_id uuid references sites(id) on delete set null,
-  parent_site_reviewed boolean not null default false,
+  site_id uuid references sites(id) on delete set null,
+  site_reviewed boolean not null default false,
   docs_reviewed boolean not null default false,
   primary_document_id uuid references document_files(id) on delete set null,
   review_status text not null default 'todo'
@@ -22,8 +22,8 @@ create table if not exists facility_reviews (
 create index if not exists idx_facility_reviews_status
   on facility_reviews(review_status);
 
-create index if not exists idx_facility_reviews_parent_site_reviewed
-  on facility_reviews(parent_site_reviewed);
+create index if not exists idx_facility_reviews_site_reviewed
+  on facility_reviews(site_reviewed);
 
 create index if not exists idx_facility_reviews_docs_reviewed
   on facility_reviews(docs_reviewed);
@@ -82,11 +82,9 @@ select
   fr.facility_name,
   f.facility_type,
   f.facility_status,
-  s.id as current_site_id,
-  s.site_name as current_site_name,
-  fr.parent_site_id,
-  ps.site_name as parent_site_name,
-  fr.parent_site_reviewed,
+  fr.site_id,
+  s.site_name as site_name,
+  fr.site_reviewed,
   fr.docs_reviewed,
   fr.primary_document_id,
   coalesce(df.filename, df.path) as primary_document_name,
@@ -98,8 +96,7 @@ select
   fr.updated_at
 from facility_reviews fr
 join facilities f on f.id = fr.facility_id
-left join sites s on s.id = f.site_id
-left join sites ps on ps.id = fr.parent_site_id
+left join sites s on s.id = fr.site_id
 left join document_files df on df.id = fr.primary_document_id
 left join (
   select facility_id, count(*) as document_count
