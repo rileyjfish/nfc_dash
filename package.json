@@ -10,5 +10,8 @@
   },
   "devDependencies": {
     "supabase": "^2.98.1"
+  },
+  "allowScripts": {
+    "supabase@2.98.1": true
   }
 }

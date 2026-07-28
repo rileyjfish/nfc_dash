@@ -6,6 +6,10 @@ This document defines the process for reviewing facility records, assigning site
 - One storage bucket for documents.
 - Canonical document path convention: `source/year/filename`.
 
+- Open supabase, facility_data
+- Open facility_reviews, facilities, document_files, document_files, document_facilities, facility_review_queue
+- Open separate tab for Storage
+
 ## Data Model Used
 
 - `facilities`: source-of-truth facility records.
