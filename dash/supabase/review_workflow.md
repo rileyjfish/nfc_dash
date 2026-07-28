@@ -4,10 +4,10 @@ This document defines the process for reviewing facility records, assigning site
 
 
 - One storage bucket for documents.
-- Canonical document path convention: `source/year/filename`.
+- Canonical document path convention: `source/year/filename` (govt agencies), or `source/source/filename` (private records or other databases)
 
 - Open supabase, facility_data
-- Open facility_reviews, facilities, document_files, document_files, document_facilities, facility_review_queue
+- Open facility_reviews (freeze facility_name), facilities, document_files, document_files, document_facilities, facility_review_queue (freeze review status)
 - Open separate tab for Storage
 
 ## Data Model Used
