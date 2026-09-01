@@ -44,6 +44,11 @@ coverage/
 dash/supabase/.temp/
 
 # -----------------------------
+# Local database backups (may contain sensitive data)
+# -----------------------------
+/backups/
+
+# -----------------------------
 # Facility import folders
 # -----------------------------
 facility_import*/
