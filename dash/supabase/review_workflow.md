@@ -1,6 +1,6 @@
 # Facility Review Workflow
 
-This document defines the process for reviewing facility records, assigning sites, and linking documentation.
+This document defines the process for reviewing facility records, assigning sites, linking documentation, recording a verification conclusion, and handling material QA issues. See [`qa_instructions.md`](qa_instructions.md) for the authoritative definitions, materiality standard, and evidence guidance.
 
 
 - One storage bucket for documents.
@@ -14,8 +14,10 @@ This document defines the process for reviewing facility records, assigning site
 
 - `facilities`: source-of-truth facility records.
 - `facility_reviews`: review tracking per facility.
+- `facility_reviews.verification_status`: verification conclusion for the resulting canonical facility record.
 - `document_files`: document metadata (`bucket`, `path`, `filename`).
 - `document_facilities`: many-to-many document links to facilities.
+- `qa_issues`: material facility-level QA findings and their resolution history.
 - `facility_review_queue`: convenience view for review work.
 
 ## Core Rules
@@ -23,8 +25,73 @@ This document defines the process for reviewing facility records, assigning site
 1. Do not run migrations for normal document ingestion.
 2. Use migrations only for schema changes.
 3. A facility can link to many documents; a document can link to many facilities
-4. A site can link to multiple facilities; a facility can only link so a single site
+4. A site can link to multiple facilities; a facility can link to only one site.
 5. Shared reference documents are stored once and linked many times.
+6. `review_status` tracks workflow progress; `verification_status` records the conclusion about the canonical facility record.
+7. Create `qa_issues` rows only for material exceptions. Routine corrections do not require issue rows.
+8. Do not delete resolved or accepted issues.
+
+## QA Fields and Codes
+
+Detailed definitions and judgment guidance are maintained in [`qa_instructions.md`](qa_instructions.md).
+
+### Review workflow status
+
+`facility_reviews.review_status`:
+
+- `todo`: review has not started.
+- `in_progress`: review is actively underway.
+- `blocked`: review cannot be completed because required work or a material issue remains unresolved.
+- `done`: all completion criteria are satisfied.
+
+### Verification conclusion
+
+`facility_reviews.verification_status`:
+
+- `unreviewed`: no verification conclusion has been assigned.
+- `verified`: the canonical record is adequately supported.
+- `verified_with_limitation`: the record is adequately supported for use with a documented material limitation.
+- `unresolved`: available evidence does not support a defensible conclusion on a material aspect of the record.
+- `excluded`: the record is outside the governing facility definition or database scope.
+
+### QA issue fields
+
+Material findings are stored in `qa_issues`. The main reviewer-facing fields are:
+
+- `facility_id`: affected facility.
+- `issue_code`: primary kind of issue.
+- `affected_field`: optional affected field in the canonical record.
+- `severity`: effect on completion.
+- `state`: current disposition.
+- `description`: concise statement of the problem and why it matters.
+- `resolution`: decision and outcome when the issue is closed.
+- `origin`: whether the finding was manual or automated.
+- `opened_by`, `opened_at`, `resolved_by`, `resolved_at`: reviewer and timestamp information.
+
+`issue_code` values:
+
+- `identity`
+- `site_assignment`
+- `classification`
+- `status_or_dates`
+- `source_conflict`
+- `insufficient_evidence`
+
+`severity` values:
+
+- `warning`: the issue should be documented or followed up but does not by itself prevent verification.
+- `blocking`: the issue prevents a defensible verification conclusion or completion while open.
+
+`state` values:
+
+- `open`: investigation or a decision is still required.
+- `resolved`: the underlying problem was addressed.
+- `accepted`: the issue remains in some form, but its effect and the canonical decision or limitation have been documented and accepted.
+
+`origin` values:
+
+- `manual`
+- `automated`
 
 ## Completion Criteria
 
@@ -34,7 +101,9 @@ A facility is complete only when all are true:
 2. `docs_reviewed = true`
 3. `primary_document_id` is not null
 4. At least one `document_facilities` link exists
-5. `review_status = 'done'`
+5. `verification_status` is not `unreviewed`
+6. No `qa_issues` row has `severity = 'blocking'` and `state = 'open'`
+7. `review_status = 'done'`
 
 ## Daily Routine
 
@@ -44,8 +113,9 @@ A facility is complete only when all are true:
    - `reviewer`
    - `review_status = 'in_progress'`
 4. Process each facility using the per-facility routine.
-5. Run end-of-day QA checks.
-6. Log session outcomes:
+5. Triage open QA issues encountered in the batch.
+6. Run end-of-day QA checks.
+7. Log session outcomes:
    - completed count
    - blocked count
    - unresolved items
@@ -57,36 +127,60 @@ A facility is complete only when all are true:
    - `facility_id`
    - `facility_name`
    - `site_id`
-2. Fact-check facility_id referencing record.
+3. Fact-check the referenced facility record.
     - facility_type, facility_status, proposal/start/end
     - if incorrect, edit referenced row in `facilities` 
-3. Validate site assignment:
+4. Validate site assignment:
    - if correct, set `site_reviewed = true`
    - if incorrect, update `facilities.site_id` and verify sync in `facility_reviews.site_id`
-4. Upload source document to storage bucket.
-5. Use path pattern: `source/year/filename`.
-6. Insert or upsert row in `document_files`.
-7. Insert link row in `document_facilities`.
-8. Set `primary_document_id` in `facility_reviews`.
-9. Mark docs complete with `docs_reviewed = true` when minimum evidence is present.
-10. Set status:
-    - `done` if site and docs are both complete
-    - `blocked` if unresolved
+5. Upload source document to storage bucket.
+6. Use path pattern: `source/year/filename`.
+7. Insert or upsert row in `document_files`.
+8. Insert link row in `document_facilities`.
+9. Set `primary_document_id` in `facility_reviews`.
+10. Mark docs complete with `docs_reviewed = true` when minimum evidence is present.
+11. If a material exception is found, open a `qa_issues` row using the process below.
+12. Assign `verification_status` after reviewing the canonical values and evidence.
+13. Set `review_status`:
+    - `done` when all completion criteria are satisfied
+    - `blocked` when an open blocking issue or other required work prevents completion
     - otherwise remain `in_progress`
-11. Set `reviewed_at = now()` and add concise notes when needed.
+14. Set `reviewed_at = now()` and add a concise review note only when needed.
+
+## Opening and Closing QA Issues
+
+### Open an issue
+
+1. Confirm that the finding is material under [`qa_instructions.md`](qa_instructions.md).
+2. Insert one `qa_issues` row for the underlying problem.
+3. Select the most specific `issue_code` and add `affected_field` when one canonical field is implicated.
+4. Set `severity`, normally leaving `state = 'open'` and `origin = 'manual'` at their defaults.
+5. Describe the problem, the relevant disagreement or missing support, and why it matters.
+6. If severity is `blocking`, set the facility's `review_status = 'blocked'` and use `verification_status = 'unresolved'` when that is the appropriate current conclusion.
+
+### Resolve or accept an issue
+
+1. Reassess the canonical facility row and linked evidence.
+2. Update the canonical value in `facilities` if the decision requires a correction.
+3. Set `state = 'resolved'` when the underlying issue was addressed, or `state = 'accepted'` when a documented limitation or decision remains.
+4. Record a concise `resolution`, `resolved_by`, and `resolved_at`.
+5. Reassess `verification_status` and `review_status`. Do not mark the review `done` if another open blocking issue remains.
+
+After resolving an issue, set `review_status = 'done'` only after checking every completion criterion. Do not delete the issue row.
 
 ## Weekly Routine
 
 1. Run full QA checks over the entire dataset.
 2. Triage `blocked` facilities oldest first.
-3. Spot-check a sample of completed facilities (recommended 10-20).
-4. Publish weekly metrics:
+3. Review open blocking QA issues and stale open warnings.
+4. Spot-check a sample of completed facilities (recommended 10-20).
+5. Publish weekly metrics:
    - total facilities
    - done
    - in_progress
    - blocked
    - todo
-5. Update naming consistency if drift appears.
+6. Update naming consistency if drift appears.
 
 ## Document Pathing Standard
 
@@ -112,7 +206,7 @@ If two or more facilities use the same reference:
 
 ## SQL Templates
 
-### 1) Link one document to one facility and update review status
+### 1) Link one document to one facility and keep the review in progress
 
 ```sql
 begin;
@@ -131,9 +225,14 @@ on conflict do nothing;
 
 update facility_reviews
 set
-  primary_document_id = (select id from d),
+  primary_document_id = (
+    select id
+    from document_files
+    where bucket = 'site-docs'
+      and path = 'nrc/2023/nureg-1234.pdf'
+  ),
   docs_reviewed = true,
-  review_status = case when site_reviewed then 'done' else 'in_progress' end,
+  review_status = 'in_progress',
   reviewed_at = now()
 where facility_id = 'PUT_FACILITY_UUID_HERE'::uuid;
 
@@ -184,6 +283,27 @@ from document_files d
 left join document_facilities df on df.document_id = d.id
 where df.document_id is null
 order by d.created_at desc;
+```
+
+### 5) QA: open issues
+
+```sql
+select
+  qi.id,
+  qi.facility_id,
+  fr.facility_name,
+  qi.issue_code,
+  qi.affected_field,
+  qi.severity,
+  qi.description,
+  qi.opened_by,
+  qi.opened_at
+from qa_issues qi
+join facility_reviews fr on fr.facility_id = qi.facility_id
+where qi.state = 'open'
+order by
+  case qi.severity when 'blocking' then 0 else 1 end,
+  qi.opened_at;
 ```
 
 ## Notes
