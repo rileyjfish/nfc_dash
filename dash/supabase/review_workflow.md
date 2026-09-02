@@ -54,6 +54,8 @@ Detailed definitions and judgment guidance are maintained in [`qa_instructions.m
 - `unresolved`: available evidence does not support a defensible conclusion on a material aspect of the record.
 - `excluded`: the record is outside the governing facility definition or database scope.
 
+`facility_review_queue` also exposes `verification_status`, `open_issue_count`, `blocking_issue_count`, and `migration_review_required`. The migration flag identifies legacy rows that were already `done` but still need a verification conclusion.
+
 ### QA issue fields
 
 Material findings are stored in `qa_issues`. The main reviewer-facing fields are:
